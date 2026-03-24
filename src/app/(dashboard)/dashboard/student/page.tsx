@@ -1,87 +1,85 @@
 import { createClient } from '@/lib/supabase/server'
-import { Calendar, Phone, TrendingUp, User } from 'lucide-react'
+import { MessageCircle, Clock } from 'lucide-react'
 
 export default async function StudentDashboard() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Get student profile
   const { data: studentProfile } = await supabase
     .from('student_profiles')
-    .select('*')
+    .select('id, class_group, section, risk_level, risk_score, roll_number')
     .eq('user_id', user?.id ?? '')
     .single()
 
-  // Get recent attendance
-  const { data: attendance } = await supabase
-    .from('attendance')
-    .select('*')
-    .eq('student_id', studentProfile?.id ?? '')
-    .order('date', { ascending: false })
-    .limit(7)
+  const { data: recentCalls } = studentProfile
+    ? await supabase
+        .from('call_logs')
+        .select('id, created_at, summary, sentiment, duration_seconds, direction')
+        .eq('student_id', studentProfile.id)
+        .order('created_at', { ascending: false })
+        .limit(5)
+    : { data: [] }
 
-  const presentDays = attendance?.filter(a => a.present).length || 0
-  const totalDays = attendance?.length || 0
-  const attendanceRate = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 100
+  const attendancePct = studentProfile ? Math.max(0, 100 - (studentProfile.risk_score ?? 0)) : 100
+  const riskLevel = studentProfile?.risk_level ?? 'green'
+  const riskLabel = riskLevel === 'red' ? 'At Risk' : riskLevel === 'yellow' ? 'Notice' : 'Good'
 
-  const riskLevel = studentProfile?.risk_level || 'green'
+  const sentimentColors: Record<string, string> = {
+    positive: 'text-[#16A34A] bg-[rgba(22,163,74,0.15)] border-[rgba(22,163,74,0.3)]',
+    neutral: 'text-[#888] bg-[rgba(136,136,136,0.1)] border-[rgba(136,136,136,0.3)]',
+    concerned: 'text-[#D97706] bg-[rgba(217,119,6,0.15)] border-[rgba(217,119,6,0.3)]',
+    distress: 'text-[#DC2626] bg-[rgba(220,38,38,0.15)] border-[rgba(220,38,38,0.3)]',
+  }
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] p-6 space-y-6">
-      <div>
-        <h1 className="font-black text-3xl text-white uppercase tracking-tight">My Dashboard</h1>
-        <p className="text-[#666] font-mono text-sm mt-1">View your attendance and call history</p>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        {/* Class Info */}
-        <div className="bg-[#111] border border-[#222] rounded-xl p-6 flex flex-col items-start gap-4">
-          <div className="p-3 rounded-lg bg-[#222] text-[#00E5CC]">
-            <User className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-xs font-mono uppercase tracking-widest text-[#555]">Class</p>
-            <p className="text-2xl font-black text-white mt-1">
-              {studentProfile?.class_group ?? 'N/A'} {studentProfile?.section ?? ''}
-            </p>
-          </div>
+    <div className="p-4 space-y-4">
+      {/* Stats — 3 cards */}
+      <div className="grid grid-cols-3 gap-2.5">
+        <div className="bg-[#111] border border-[#1a1a1a] rounded-lg p-3">
+          <div className="text-[#444] text-[10px] uppercase tracking-[1px] mb-1">Class</div>
+          <div className="text-white text-xl font-medium">{studentProfile?.class_group ?? '—'} {studentProfile?.section ?? ''}</div>
         </div>
-
-        {/* Attendance */}
-        <div className="bg-[#111] border border-[#222] rounded-xl p-6 flex flex-col items-start gap-4">
-          <div className="p-3 rounded-lg bg-[#222] text-[#00E5CC]">
-            <Calendar className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-xs font-mono uppercase tracking-widest text-[#555]">Attendance (7 days)</p>
-            <p className={`text-2xl font-black mt-1 ${attendanceRate < 75 ? 'text-red-400' : 'text-green-400'}`}>
-              {attendanceRate}%
-            </p>
-          </div>
+        <div className="bg-[#111] border border-[#1a1a1a] rounded-lg p-3">
+          <div className="text-[#444] text-[10px] uppercase tracking-[1px] mb-1">Attendance</div>
+          <div className={`text-xl font-medium ${attendancePct < 75 ? 'text-[#DC2626]' : attendancePct < 85 ? 'text-[#D97706]' : 'text-[#16A34A]'}`}>{attendancePct}%</div>
         </div>
-
-        {/* Status */}
-        <div className="bg-[#111] border border-[#222] rounded-xl p-6 flex flex-col items-start gap-4">
-          <div className="p-3 rounded-lg bg-[#222] text-[#00E5CC]">
-            <TrendingUp className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-xs font-mono uppercase tracking-widest text-[#555]">Status</p>
-            <p className={`text-xl font-bold uppercase tracking-wider mt-2 ${riskLevel === 'red' ? 'text-red-400' : riskLevel === 'yellow' ? 'text-yellow-400' : 'text-green-400'}`}>
-              {riskLevel === 'green' ? 'Good' : riskLevel === 'yellow' ? 'Notice' : 'At Risk'}
-            </p>
-          </div>
+        <div className="bg-[#111] border border-[#1a1a1a] rounded-lg p-3">
+          <div className="text-[#444] text-[10px] uppercase tracking-[1px] mb-1">Status</div>
+          <div className={`text-xl font-medium ${riskLevel === 'red' ? 'text-[#DC2626]' : riskLevel === 'yellow' ? 'text-[#D97706]' : 'text-[#16A34A]'}`}>{riskLabel}</div>
         </div>
       </div>
 
-      <div className="bg-[#111] border border-[#222] rounded-xl p-6">
-        <h2 className="font-bold text-white text-sm uppercase tracking-widest font-mono mb-2 flex items-center gap-2">
-          <Phone className="w-4 h-4 text-[#555]" />
+      {/* Recent Check-ins */}
+      <div className="space-y-2.5">
+        <div className="text-[#444] text-[10px] uppercase tracking-[1.5px]">
           Recent Check-ins
-        </h2>
-        <p className="text-[#666] text-sm font-mono mt-4">
-          Your recent check-in calls will appear here once the system has processed them.
-        </p>
+        </div>
+
+        {(recentCalls ?? []).length === 0 ? (
+          <div className="bg-[#111] border border-[#1a1a1a] rounded-lg p-8 text-center">
+            <MessageCircle className="w-8 h-8 text-[#333] mx-auto mb-2" />
+            <p className="text-white text-xs font-medium">No Check-ins Yet</p>
+            <p className="text-[#555] text-[10px] mt-1">Your AI check-in history will appear here.</p>
+          </div>
+        ) : (
+          (recentCalls ?? []).map((call: any) => {
+            const duration = call.duration_seconds ? `${Math.floor(call.duration_seconds / 60)}m ${call.duration_seconds % 60}s` : '—'
+            return (
+              <div key={call.id} className="bg-[#111] border border-[#1a1a1a] rounded-lg p-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded border font-medium uppercase tracking-[0.5px] ${sentimentColors[call.sentiment] ?? sentimentColors.neutral}`}>
+                    {call.sentiment ?? 'neutral'}
+                  </span>
+                  <div className="flex items-center gap-1.5 text-[#444] text-[10px]">
+                    <Clock className="w-3 h-3" />
+                    {duration} · {call.created_at ? new Date(call.created_at).toLocaleDateString('en-US') : '—'}
+                  </div>
+                </div>
+                <p className="text-[#888] text-[11px] leading-relaxed">{call.summary ?? 'No summary.'}</p>
+              </div>
+            )
+          })
+        )}
       </div>
     </div>
   )

@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { AppSidebar } from '@/components/dashboard/app-sidebar'
-import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
+import { SidebarProvider } from '@/components/ui/sidebar'
 import { Toaster } from '@/components/ui/sonner'
+import { DashboardHeader } from '@/components/dashboard/dashboard-header'
 
 export default async function DashboardLayout({
   children,
@@ -30,12 +31,9 @@ export default async function DashboardLayout({
     <div className="flex min-h-screen bg-[#0A0A0A]">
       <SidebarProvider>
         <AppSidebar user={userData} />
-        <main className="flex-1 min-h-screen bg-[#0A0A0A]">
-          <header className="sticky top-0 z-10 bg-[#0A0A0A] border-b border-[#222] px-4 py-3 flex items-center gap-4">
-            <SidebarTrigger className="text-[#666] hover:text-white" />
-            <span className="font-mono text-xs text-[#555] uppercase tracking-widest">BridgeCall AI</span>
-          </header>
-          <div className="p-0">
+        <main className="flex-1 min-h-screen bg-[#0d0d0d] flex flex-col">
+          <DashboardHeader userName={userData.name ?? 'User'} />
+          <div className="flex-1">
             {children}
           </div>
         </main>
@@ -44,4 +42,3 @@ export default async function DashboardLayout({
     </div>
   )
 }
-

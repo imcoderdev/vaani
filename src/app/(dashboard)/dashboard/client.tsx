@@ -1,7 +1,6 @@
 'use client'
 
 import { StudentRiskCard } from '@/components/dashboard/student-risk-card'
-import { Phone, AlertTriangle, Users, Activity } from 'lucide-react'
 
 interface Student {
   id: string
@@ -29,42 +28,44 @@ export function TeacherDashboardClient({
   atRisk: number
   openAlerts: number
 }) {
-  const stats = [
-    { label: 'Students', value: totalStudents, icon: Users, color: 'text-[#00E5CC]' },
-    { label: 'Calls Today', value: callsToday, icon: Phone, color: 'text-green-400' },
-    { label: 'At Risk', value: atRisk, icon: Activity, color: 'text-yellow-400' },
-    { label: 'Open Alerts', value: openAlerts, icon: AlertTriangle, color: 'text-red-400' },
-  ]
+  const coverage = totalStudents > 0 ? Math.round((callsToday / totalStudents) * 100) : 0
+
   return (
-    <div className="min-h-screen bg-[#0A0A0A] p-6 space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="font-black text-3xl text-white uppercase tracking-tight">Student Risk Board</h1>
-        <p className="text-[#666] font-mono text-sm mt-1">Monitor student welfare · Trigger AI check-in calls</p>
+    <div className="p-4 space-y-4">
+      {/* Stats bar — 4 compact cards */}
+      <div className="grid grid-cols-4 gap-2.5">
+        <div className="bg-[#111] border border-[#1a1a1a] rounded-lg p-3">
+          <div className="text-[#444] text-[10px] uppercase tracking-[1px] mb-1">Students</div>
+          <div className="text-white text-xl font-medium">{totalStudents}</div>
+        </div>
+        <div className="bg-[#111] border border-[#1a1a1a] rounded-lg p-3">
+          <div className="text-[#444] text-[10px] uppercase tracking-[1px] mb-1">Flagged</div>
+          <div className="text-[#DC2626] text-xl font-medium">{atRisk}</div>
+        </div>
+        <div className="bg-[#111] border border-[#1a1a1a] rounded-lg p-3">
+          <div className="text-[#444] text-[10px] uppercase tracking-[1px] mb-1">Called Today</div>
+          <div className="text-[#00E5CC] text-xl font-medium">{callsToday}</div>
+        </div>
+        <div className="bg-[#111] border border-[#1a1a1a] rounded-lg p-3">
+          <div className="text-[#444] text-[10px] uppercase tracking-[1px] mb-1">Coverage</div>
+          <div className="text-[#D97706] text-xl font-medium">{coverage}%</div>
+        </div>
       </div>
 
-      {/* Stats bar */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat) => (
-          <div key={stat.label} className="bg-[#111] border border-[#222] rounded-xl p-4 flex items-center gap-4">
-            <stat.icon className={`w-8 h-8 ${stat.color} shrink-0`} />
-            <div>
-              <p className="text-2xl font-black text-white">{stat.value}</p>
-              <p className="text-[10px] uppercase tracking-widest text-[#555] font-mono">{stat.label}</p>
-            </div>
-          </div>
-        ))}
+      {/* Section label */}
+      <div className="text-[#666] text-[10px] uppercase tracking-[1.5px]">
+        Student Risk Board — SE-A
       </div>
 
-      {/* Student cards */}
+      {/* Student cards — 2-column grid */}
       {students.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <p className="text-4xl mb-4">📋</p>
-          <h3 className="text-white font-bold text-lg">No Students Yet</h3>
-          <p className="text-[#666] text-sm mt-2 font-mono">Students will appear here once added to the system.</p>
+          <h3 className="text-white font-medium text-sm">No Students Yet</h3>
+          <p className="text-[#666] text-[11px] mt-2">Students will appear here once added to the system.</p>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-2.5">
           {students.map((student) => (
             <StudentRiskCard key={student.id} student={student} />
           ))}

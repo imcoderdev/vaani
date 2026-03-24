@@ -2,7 +2,7 @@
 
 import { useRealtimeAlerts, CounselorAlert } from '@/hooks/useRealtimeAlerts'
 import { createClient } from '@/lib/supabase/client'
-import { AlertTriangle, CheckCircle, Eye, X, Clock } from 'lucide-react'
+import { Eye, CheckCircle, X, Clock } from 'lucide-react'
 import { useTransition } from 'react'
 
 function formatRelativeTime(date: string) {
@@ -27,11 +27,10 @@ export function CounselorAlertsClient({ initialAlerts }: { initialAlerts: Counse
   const resolvedAlerts = alerts.filter((a) => a.status !== 'open')
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] p-6 space-y-8">
-      {/* New alert banner */}
+    <div className="p-4 space-y-4">
+      {/* New alert banner (floating) */}
       {newAlertBanner && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-red-600 text-white px-6 py-4 rounded-xl flex items-center gap-4 shadow-2xl border border-red-500 animate-pulse max-w-lg w-full mx-4">
-          <AlertTriangle className="w-5 h-5 shrink-0" />
           <div className="flex-1">
             <p className="font-bold text-sm">🚨 DISTRESS ALERT</p>
             <p className="text-xs text-red-100">{newAlertBanner.reason ?? 'Student needs immediate attention.'}</p>
@@ -40,20 +39,23 @@ export function CounselorAlertsClient({ initialAlerts }: { initialAlerts: Counse
         </div>
       )}
 
-      <div>
-        <h1 className="font-black text-3xl text-white uppercase tracking-tight">Alert Feed</h1>
-        <p className="text-[#666] font-mono text-sm mt-1">
-          Real-time distress alerts · <span className="text-red-400 font-bold">{openAlerts.length} open</span>
-        </p>
-      </div>
+      {/* Urgent banner */}
+      {openAlerts.length > 0 && (
+        <div className="bg-[rgba(220,38,38,0.08)] border border-[rgba(220,38,38,0.2)] rounded-lg px-3.5 py-2.5 flex items-center gap-2">
+          <div className="w-1.5 h-1.5 bg-[#DC2626] rounded-full animate-pulse shrink-0" />
+          <span className="text-[#DC2626] text-[11px] font-medium">
+            {openAlerts.length} student{openAlerts.length > 1 ? 's' : ''} need{openAlerts.length === 1 ? 's' : ''} immediate attention
+          </span>
+        </div>
+      )}
 
       {/* Open alerts */}
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         {openAlerts.length === 0 && (
           <div className="text-center py-16">
             <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
-            <p className="text-white font-bold">All Clear</p>
-            <p className="text-[#666] text-sm font-mono mt-1">No open alerts at this time.</p>
+            <p className="text-white font-medium text-sm">All Clear</p>
+            <p className="text-[#666] text-[11px] mt-1">No open alerts at this time.</p>
           </div>
         )}
         {openAlerts.map((alert) => (
@@ -63,8 +65,8 @@ export function CounselorAlertsClient({ initialAlerts }: { initialAlerts: Counse
 
       {/* Resolved */}
       {resolvedAlerts.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="text-[#444] font-mono text-xs uppercase tracking-widest">Resolved / Reviewed</h2>
+        <div className="space-y-2.5">
+          <h2 className="text-[#444] text-[10px] uppercase tracking-[1.5px]">Resolved / Reviewed</h2>
           {resolvedAlerts.map((alert) => (
             <AlertCard key={alert.id} alert={alert} onUpdate={updateStatus} dimmed />
           ))}
@@ -86,29 +88,55 @@ function AlertCard({
   const studentName = (alert.student as { user?: { name?: string } } | null)?.user?.name ?? 'Unknown Student'
 
   return (
-    <div className={`bg-[#111] border rounded-xl p-5 flex items-start justify-between gap-4 transition-opacity ${dimmed ? 'opacity-40' : 'border-red-500/40'}`}>
-      <div className="flex gap-4">
-        <div className="w-10 h-10 rounded-full bg-red-900/40 border border-red-500/40 flex items-center justify-center shrink-0">
-          <AlertTriangle className="w-5 h-5 text-red-400" />
+    <div className={`bg-[#111] border border-[#1a1a1a] border-l-2 border-l-[#DC2626] rounded-lg p-3.5 transition-opacity ${dimmed ? 'opacity-40' : ''}`}>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-2">
+          <span className="bg-[rgba(220,38,38,0.15)] text-[#DC2626] border border-[rgba(220,38,38,0.3)] text-[9px] px-1.5 py-0.5 rounded font-medium uppercase tracking-[0.5px]">
+            Distress
+          </span>
+          <span className="text-white text-xs font-medium">{studentName}</span>
         </div>
-        <div className="space-y-1">
-          <p className="font-bold text-white text-sm">{studentName}</p>
-          <p className="text-[#888] text-xs font-mono">{alert.reason ?? 'Distress detected in AI call'}</p>
-          <div className="flex items-center gap-1 text-[#555] text-xs font-mono">
-            <Clock size={10} />
-            <span>{alert.created_at ? formatRelativeTime(alert.created_at) : '—'}</span>
+        <span className="text-[#444] text-[10px]">
+          {alert.created_at ? formatRelativeTime(alert.created_at) : '—'}
+        </span>
+      </div>
+
+      {/* Reason */}
+      <p className="text-[#888] text-[11px] leading-relaxed mb-2.5">
+        &ldquo;{alert.reason ?? 'Distress detected in AI call'}&rdquo;
+      </p>
+
+      {/* AI Summary box */}
+      {alert.reason && (
+        <div className="bg-[#0A0A0A] border border-[#1a1a1a] rounded-md p-2 mb-2.5">
+          <div className="text-[#444] text-[9px] uppercase tracking-[1px] mb-1">AI Summary</div>
+          <div className="text-[#888] text-[11px] leading-relaxed">
+            {alert.reason}
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Action buttons */}
       {alert.status === 'open' && (
-        <div className="flex gap-2 shrink-0">
-          <button onClick={() => onUpdate(alert.id, 'reviewed')}
-            className="px-3 py-1.5 border border-[#333] rounded-lg text-white text-xs font-mono hover:bg-[#1a1a1a] flex items-center gap-1.5">
-            <Eye size={12} /> Review
+        <div className="flex gap-2">
+          <button
+            onClick={() => onUpdate(alert.id, 'reviewed')}
+            className="text-[10px] py-1 px-2.5 rounded border border-[#00E5CC] text-[#00E5CC] bg-transparent cursor-pointer hover:bg-[#00E5CC] hover:text-black transition-all"
+          >
+            View Transcript
           </button>
-          <button onClick={() => onUpdate(alert.id, 'resolved')}
-            className="px-3 py-1.5 bg-green-900/40 border border-green-500/40 rounded-lg text-green-400 text-xs font-mono hover:bg-green-900/60 flex items-center gap-1.5">
-            <CheckCircle size={12} /> Resolve
+          <button
+            onClick={() => onUpdate(alert.id, 'reviewed')}
+            className="text-[10px] py-1 px-2.5 rounded border border-[#333] text-[#888] bg-transparent cursor-pointer hover:bg-[#1a1a1a] transition-all"
+          >
+            Mark Reviewed
+          </button>
+          <button
+            onClick={() => onUpdate(alert.id, 'resolved')}
+            className="text-[10px] py-1 px-2.5 rounded border border-[#DC2626] text-[#DC2626] bg-transparent cursor-pointer hover:bg-[#DC2626] hover:text-white transition-all"
+          >
+            Escalate
           </button>
         </div>
       )}

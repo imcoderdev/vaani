@@ -38,6 +38,7 @@ export default async function ParentDashboard() {
     <ParentDashboardClient
       parentName={(userData as { name?: string } | null)?.name ?? 'Parent'}
       student={rawStudent ? {
+        id: rawStudent.id,
         name: rawStudent.user?.name ?? 'Your Child',
         class_group: rawStudent.class_group,
         section: rawStudent.section,
